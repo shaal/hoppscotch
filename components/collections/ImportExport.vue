@@ -1,131 +1,133 @@
 <template>
-  <SmartModal v-if="show" @close="hideModal">
-    <template #header>
-      <h3 class="heading">{{ $t("import_export") }} {{ $t("collections") }}</h3>
-      <div>
-        <button
-          v-if="mode == 'import_from_my_collections'"
-          v-tooltip.left="'Back'"
-          class="tooltip-target icon button"
-          @click="
-            mode = 'import_export'
-            mySelectedCollectionID = undefined
-          "
-        >
-          <i class="material-icons">arrow_back</i>
-        </button>
-        <v-popover
+  <SmartModal
+    v-if="show"
+    :title="`${$t('modal.import_export')} ${$t('modal.collections')}`"
+    @close="hideModal"
+  >
+    <template #actions>
+      <ButtonSecondary
+        v-if="mode == 'import_from_my_collections'"
+        v-tippy="{ theme: 'tooltip' }"
+        :title="$t('action.go_back')"
+        class="rounded"
+        svg="arrow-left"
+        @click.native="
+          mode = 'import_export'
+          mySelectedCollectionID = undefined
+        "
+      />
+      <span>
+        <tippy
           v-if="
             mode == 'import_export' && collectionsType.type == 'my-collections'
           "
+          ref="options"
+          interactive
+          trigger="click"
+          theme="popover"
+          arrow
         >
-          <button
-            v-tooltip.left="$t('more')"
-            class="tooltip-target icon button"
-          >
-            <i class="material-icons">more_vert</i>
-          </button>
-          <template #popover>
-            <div>
-              <button
-                v-close-popover
-                class="icon button"
-                @click="readCollectionGist"
-              >
-                <i class="material-icons">assignment_returned</i>
-                <span>{{ $t("import_from_gist") }}</span>
-              </button>
-            </div>
-            <div
-              v-tooltip.bottom="{
-                content: !currentUser
-                  ? $t('login_with_github_to') + $t('create_secret_gist')
-                  : currentUser.provider !== 'github.com'
-                  ? $t('login_with_github_to') + $t('create_secret_gist')
-                  : null,
-              }"
-            >
-              <button
-                v-close-popover
-                :disabled="
-                  !currentUser
-                    ? true
-                    : currentUser.provider !== 'github.com'
-                    ? true
-                    : false
-                "
-                class="icon button"
-                @click="createCollectionGist"
-              >
-                <i class="material-icons">assignment_turned_in</i>
-                <span>{{ $t("create_secret_gist") }}</span>
-              </button>
-            </div>
+          <template #trigger>
+            <ButtonSecondary
+              v-tippy="{ theme: 'tooltip' }"
+              :title="$t('action.more')"
+              class="rounded"
+              svg="more-vertical"
+            />
           </template>
-        </v-popover>
-        <button class="icon button" @click="hideModal">
-          <i class="material-icons">close</i>
-        </button>
-      </div>
+          <SmartItem
+            icon="assignment_returned"
+            :label="$t('import.from_gist')"
+            @click.native="
+              readCollectionGist
+              $refs.options.tippy().hide()
+            "
+          />
+          <span
+            v-tippy="{ theme: 'tooltip' }"
+            :title="
+              !currentUser
+                ? $t('export.require_github')
+                : currentUser.provider !== 'github.com'
+                ? $t('export.require_github')
+                : null
+            "
+          >
+            <SmartItem
+              :disabled="
+                !currentUser
+                  ? true
+                  : currentUser.provider !== 'github.com'
+                  ? true
+                  : false
+              "
+              icon="assignment_turned_in"
+              :label="$t('export.create_secret_gist')"
+              @click.native="
+                createCollectionGist()
+                $refs.options.tippy().hide()
+              "
+            />
+          </span>
+        </tippy>
+      </span>
     </template>
     <template #body>
-      <div v-if="mode == 'import_export'" class="flex flex-col p-2 items-start">
-        <button
-          v-tooltip="$t('replace_current')"
-          class="icon button"
-          @click="openDialogChooseFileToReplaceWith"
-        >
-          <i class="material-icons">folder_special</i>
-          <span>{{ $t("replace_json") }}</span>
-          <input
-            ref="inputChooseFileToReplaceWith"
-            class="input"
-            type="file"
-            style="display: none"
-            accept="application/json"
-            @change="replaceWithJSON"
-          />
-        </button>
-        <button
-          v-tooltip="$t('preserve_current')"
-          class="icon button"
-          @click="openDialogChooseFileToImportFrom"
-        >
-          <i class="material-icons">create_new_folder</i>
-          <span>{{ $t("import_json") }}</span>
-          <input
-            ref="inputChooseFileToImportFrom"
-            class="input"
-            type="file"
-            style="display: none"
-            accept="application/json"
-            @change="importFromJSON"
-          />
-        </button>
-        <button
+      <div v-if="mode == 'import_export'" class="flex flex-col space-y-2">
+        <SmartItem
+          v-tippy="{ theme: 'tooltip' }"
+          :title="$t('action.replace_current')"
+          svg="file"
+          :label="$t('action.replace_json')"
+          @click.native="openDialogChooseFileToReplaceWith"
+        />
+        <input
+          ref="inputChooseFileToReplaceWith"
+          class="input"
+          type="file"
+          style="display: none"
+          accept="application/json"
+          @change="replaceWithJSON"
+        />
+        <SmartItem
+          v-tippy="{ theme: 'tooltip' }"
+          :title="$t('action.preserve_current')"
+          svg="folder-plus"
+          :label="$t('import.json')"
+          @click.native="openDialogChooseFileToImportFrom"
+        />
+        <input
+          ref="inputChooseFileToImportFrom"
+          class="input"
+          type="file"
+          style="display: none"
+          accept="application/json"
+          @change="importFromJSON"
+        />
+        <SmartItem
           v-if="collectionsType.type == 'team-collections'"
-          v-tooltip="$t('preserve_current')"
-          class="icon button"
-          @click="mode = 'import_from_my_collections'"
-        >
-          <i class="material-icons">folder_shared</i>
-          <span>{{ $t("import_from_my_collections") }}</span>
-        </button>
-        <button
-          v-tooltip="$t('download_file')"
-          class="icon button"
-          @click="exportJSON"
-        >
-          <i class="material-icons">drive_file_move</i>
-          <span>
-            {{ $t("export_as_json") }}
-          </span>
-        </button>
+          v-tippy="{ theme: 'tooltip' }"
+          :title="$t('action.preserve_current')"
+          svg="user"
+          :label="$t('import.from_my_collections')"
+          @click.native="mode = 'import_from_my_collections'"
+        />
+        <SmartItem
+          v-tippy="{ theme: 'tooltip' }"
+          :title="$t('action.download_file')"
+          svg="download"
+          :label="$t('export.as_json')"
+          @click.native="exportJSON"
+        />
       </div>
-      <div v-if="mode == 'import_from_my_collections'">
-        <span class="select-wrapper">
+      <div
+        v-if="mode == 'import_from_my_collections'"
+        class="flex flex-col px-2"
+      >
+        <div class="select-wrapper">
           <select
             type="text"
+            autocomplete="off"
             class="select"
             autofocus
             @change="
@@ -145,27 +147,24 @@
             </option>
             <option
               v-for="(collection, index) in myCollections"
-              :key="index"
+              :key="`collection-${index}`"
               :value="index"
             >
               {{ collection.name }}
             </option>
           </select>
-        </span>
+        </div>
       </div>
     </template>
     <template #footer>
       <div v-if="mode == 'import_from_my_collections'">
-        <span></span>
         <span>
-          <button
-            class="m-2 icon button"
+          <ButtonPrimary
             :disabled="mySelectedCollectionID == undefined"
-            @click="importFromMyCollections"
-          >
-            <i class="material-icons">create_new_folder</i>
-            <span>{{ $t("import") }}</span>
-          </button>
+            svg="folder-plus"
+            :label="$t('import.title')"
+            @click.native="importFromMyCollections"
+          />
         </span>
       </div>
     </template>
@@ -173,18 +172,26 @@
 </template>
 
 <script>
+import { defineComponent } from "@nuxtjs/composition-api"
 import { currentUser$ } from "~/helpers/fb/auth"
 import * as teamUtils from "~/helpers/teams/utils"
+import { useReadonlyStream } from "~/helpers/utils/composables"
 import {
   restCollections$,
   setRESTCollections,
   appendRESTCollections,
 } from "~/newstore/collections"
 
-export default {
+export default defineComponent({
   props: {
     show: Boolean,
     collectionsType: { type: Object, default: () => {} },
+  },
+  setup() {
+    return {
+      myCollections: useReadonlyStream(restCollections$, []),
+      currentUser: useReadonlyStream(currentUser$, null),
+    }
   },
   data() {
     return {
@@ -192,12 +199,6 @@ export default {
       mode: "import_export",
       mySelectedCollectionID: undefined,
       collectionJson: "",
-    }
-  },
-  subscriptions() {
-    return {
-      myCollections: restCollections$,
-      currentUser: currentUser$,
     }
   },
   methods: {
@@ -221,20 +222,20 @@ export default {
           }
         )
         .then((res) => {
-          this.$toast.success(this.$t("gist_created"), {
+          this.$toast.success(this.$t("export.gist_created"), {
             icon: "done",
           })
           window.open(res.html_url)
         })
-        .catch((error) => {
-          this.$toast.error(this.$t("something_went_wrong"), {
-            icon: "error",
+        .catch((e) => {
+          this.$toast.error(this.$t("error.something_went_wrong"), {
+            icon: "error_outline",
           })
-          console.log(error)
+          console.error(e)
         })
     },
     async readCollectionGist() {
-      const gist = prompt(this.$t("enter_gist_url"))
+      const gist = prompt(this.$t("import.gist_url"))
       if (!gist) return
       await this.$axios
         .$get(`https://api.github.com/gists/${gist.split("/").pop()}`, {
@@ -247,9 +248,9 @@ export default {
           setRESTCollections(collections)
           this.fileImported()
         })
-        .catch((error) => {
+        .catch((e) => {
           this.failedImport()
-          console.log(error)
+          console.error(e)
         })
     },
     hideModal() {
@@ -299,8 +300,8 @@ export default {
                 this.failedImport()
               }
             })
-            .catch((error) => {
-              console.log(error)
+            .catch((e) => {
+              console.error(e)
               this.failedImport()
             })
         } else {
@@ -353,8 +354,8 @@ export default {
                 this.failedImport()
               }
             })
-            .catch((error) => {
-              console.log(error)
+            .catch((e) => {
+              console.error(e)
               this.failedImport()
             })
         } else {
@@ -380,8 +381,8 @@ export default {
             this.failedImport()
           }
         })
-        .catch((error) => {
-          console.log(error)
+        .catch((e) => {
+          console.error(e)
           this.failedImport()
         })
     },
@@ -398,73 +399,73 @@ export default {
     },
     exportJSON() {
       this.getJSONCollection()
-      let text = this.collectionJson
-      text = text.replace(/\n/g, "\r\n")
-      const blob = new Blob([text], {
-        type: "text/json",
+      const dataToWrite = this.collectionJson
+      const file = new Blob([dataToWrite], { type: "application/json" })
+      const a = document.createElement("a")
+      const url = URL.createObjectURL(file)
+      a.href = url
+      // TODO get uri from meta
+      a.download = `${url.split("/").pop().split("#")[0].split("?")[0]}`
+      document.body.appendChild(a)
+      a.click()
+      this.$toast.success(this.$t("state.download_started"), {
+        icon: "downloading",
       })
-      const anchor = document.createElement("a")
-      anchor.download = "hoppscotch-collection.json"
-      anchor.href = window.URL.createObjectURL(blob)
-      anchor.target = "_blank"
-      anchor.style.display = "none"
-      document.body.appendChild(anchor)
-      anchor.click()
-      document.body.removeChild(anchor)
-      this.$toast.success(this.$t("download_started"), {
-        icon: "done",
-      })
+      setTimeout(() => {
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      }, 1000)
     },
     fileImported() {
-      this.$toast.info(this.$t("file_imported"), {
+      this.$toast.success(this.$t("state.file_imported"), {
         icon: "folder_shared",
       })
     },
     failedImport() {
-      this.$toast.error(this.$t("import_failed"), {
-        icon: "error",
+      this.$toast.error(this.$t("import.failed"), {
+        icon: "error_outline",
       })
     },
     parsePostmanCollection({ info, name, item }) {
-      const postwomanCollection = {
+      const hoppscotchCollection = {
         name: "",
         folders: [],
         requests: [],
       }
 
-      postwomanCollection.name = info ? info.name : name
+      hoppscotchCollection.name = info ? info.name : name
 
       if (item && item.length > 0) {
         for (const collectionItem of item) {
           if (collectionItem.request) {
             if (
               Object.prototype.hasOwnProperty.call(
-                postwomanCollection,
+                hoppscotchCollection,
                 "folders"
               )
             ) {
-              postwomanCollection.name = info ? info.name : name
-              postwomanCollection.requests.push(
+              hoppscotchCollection.name = info ? info.name : name
+              hoppscotchCollection.requests.push(
                 this.parsePostmanRequest(collectionItem)
               )
             } else {
-              postwomanCollection.name = name || ""
-              postwomanCollection.requests.push(
+              hoppscotchCollection.name = name || ""
+              hoppscotchCollection.requests.push(
                 this.parsePostmanRequest(collectionItem)
               )
             }
           } else if (this.hasFolder(collectionItem)) {
-            postwomanCollection.folders.push(
+            hoppscotchCollection.folders.push(
               this.parsePostmanCollection(collectionItem)
             )
           } else {
-            postwomanCollection.requests.push(
+            hoppscotchCollection.requests.push(
               this.parsePostmanRequest(collectionItem)
             )
           }
         }
       }
-      return postwomanCollection
+      return hoppscotchCollection
     },
     parsePostmanRequest({ name, request }) {
       const pwRequest = {
@@ -554,5 +555,5 @@ export default {
       return Object.prototype.hasOwnProperty.call(item, "item")
     },
   },
-}
+})
 </script>
